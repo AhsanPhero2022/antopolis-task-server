@@ -1,6 +1,6 @@
 const express = require("express");
 const cors = require("cors");
-const multer = require("multer");
+
 require("dotenv").config();
 const { MongoClient, ServerApiVersion } = require("mongodb");
 
@@ -22,37 +22,47 @@ const client = new MongoClient(uri, {
 });
 
 // Configure multer for file uploads
-const storage = multer.memoryStorage();
-const upload = multer({ storage });
 
 async function run() {
   try {
     await client.connect();
-    
+
     const imagesCollection = client.db("allAnimals").collection("images");
+    const categoryCollection = client.db("allAnimals").collection("category");
 
-   
-
-    // Endpoint to handle image uploads
-    app.post("/upload-image", upload.single('file'), async (req, res) => {
-      const file = req.file;
-      if (!file) {
-        return res.status(400).send({ message: 'No file uploaded' });
+    app.post("/images", async (req, res) => {
+      const newFrozen = req.body;
+      try {
+        const result = await imagesCollection.insertOne(newFrozen);
+        res.status(201).send(result);
+      } catch (error) {
+        res.status(500).send({ error: "Failed to insert image" });
       }
+    });
+    app.post("/category", async (req, res) => {
+      const newFrozen = req.body;
+      try {
+        const result = await categoryCollection.insertOne(newFrozen);
+        res.status(201).send(result);
+      } catch (error) {
+        res.status(500).send({ error: "Failed to insert category" });
+      }
+    });
 
-      const newImage = {
-        imageName: file.originalname,
-        data: file.buffer,
-        contentType: file.mimetype,
-      };
-
-      const result = await imagesCollection.insertOne(newImage);
-      res.send({ message: 'Image uploaded successfully', result });
+    app.get("/images", async (req, res) => {
+      const images = await imagesCollection.find().toArray();
+      res.send(images);
+    });
+    app.get("/category", async (req, res) => {
+      const category = await categoryCollection.find().toArray();
+      res.send(category);
     });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!"
+    );
   } catch (error) {
     console.error(error);
   } finally {
